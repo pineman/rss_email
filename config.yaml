@@ -1,4 +1,10 @@
 feeds:
   - "https://pineman.github.io/atom.xml"
+  - "https://boringsql.com/atom.xml"
+  - "https://www.cybertec-postgresql.com/en/feed/"
+  - "https://postgres.ai/blog/rss.xml"
+  - "https://fly.io/blog/feed.xml"
+  - "https://vondra.me/index.xml"
+  - "https://turbopuffer.com/blog/rss.xml"
 
 check_interval_minutes: 30
