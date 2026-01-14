@@ -13,34 +13,36 @@ SMTP_PORT = 587
 
 
 class EmailSender:
-    def __init__(self, gmail_address: str, gmail_app_password: str, recipient_email: str):
+    def __init__(
+        self, gmail_address: str, gmail_app_password: str, recipient_email: str
+    ):
         self.gmail_address = gmail_address
         self.gmail_app_password = gmail_app_password
         self.recipient_email = recipient_email
-        
-    def send_email(self, subject: str, body: str, html_body: Optional[str] = None) -> bool:
-       if html_body:
-           msg = MIMEMultipart("alternative")
-           msg.attach(MIMEText(body, "plain"))
-           msg.attach(MIMEText(html_body, "html"))
-       else:
-           msg = MIMEText(body, "plain")
-       
-       msg["Subject"] = subject
-       msg["From"] = self.gmail_address
-       msg["To"] = self.recipient_email
-       
-       with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-           server.starttls()
-           server.login(self.gmail_address, self.gmail_app_password)
-           server.send_message(msg)
-       
-       logger.info(f"Email sent successfully: {subject}")
+
+    def send_email(
+        self, subject: str, body: str, html_body: Optional[str] = None
+    ) -> bool:
+        if html_body:
+            msg = MIMEMultipart("alternative")
+            msg.attach(MIMEText(body, "plain"))
+            msg.attach(MIMEText(html_body, "html"))
+        else:
+            msg = MIMEText(body, "plain")
+
+        msg["Subject"] = subject
+        msg["From"] = self.gmail_address
+        msg["To"] = self.recipient_email
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(self.gmail_address, self.gmail_app_password)
+            server.send_message(msg)
 
 
 def format_rss_email(feed_name: str, item: dict) -> tuple[str, str, str]:
     subject = f"[RSS] {feed_name}: {item.get('title', 'No Title')}"
-    
+
     text_body = f"""
 New post from {feed_name}
 
@@ -53,7 +55,7 @@ Published: {item.get('published', 'Unknown')}
 ---
 This email was sent by RSS to Email service.
 """
-    
+
     html_body = f"""
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -82,5 +84,5 @@ This email was sent by RSS to Email service.
 </body>
 </html>
 """
-    
+
     return subject, text_body, html_body
