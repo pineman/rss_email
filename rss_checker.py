@@ -34,7 +34,6 @@ def fetch_feed(url: str) -> Tuple[str, List[Dict]]:
     items = []
     feed_title = url  # Default to URL if no title found
 
-    logger.debug(f"Fetching feed: {url}")
     feed = feedparser.parse(url)
 
     if feed.bozo and hasattr(feed, "bozo_exception"):
@@ -51,6 +50,10 @@ def fetch_feed(url: str) -> Tuple[str, List[Dict]]:
         item = normalize_feed_item(entry)
         if item:
             items.append(item)
+        else:
+            entry_title = entry.get("title", "No Title")
+            entry_link = entry.get("link", "No Link")
+            logger.warning(f"Skipping item with no guid or link - Entry title: {entry_title}, Entry link: {entry_link}, Feed URL: {url}")
 
     logger.info(f"Fetched {len(items)} items from {feed_title} ({url})")
 
@@ -63,7 +66,6 @@ def normalize_feed_item(entry) -> Optional[Dict]:
     guid = entry.get("id", entry.get("guid", link))  # id -> guid -> link fallback
 
     if not guid:
-        logger.warning("Skipping item with no guid or link")
         return None
 
     published = get_published_date(entry)

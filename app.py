@@ -65,7 +65,7 @@ def send_item(feed_url, feed_name, item):
     subject, text_body, html_body = format_rss_email(feed_name, item)
     EMAIL_SENDER.send_email(subject, text_body, html_body)
     mark_item_sent(feed_url, item["guid"])
-    logger.info(f"Sent: {item['title']}")
+    logger.info(f"Sent: {item['title']} for {feed_url}")
     time.sleep(1)
 
 
@@ -95,6 +95,7 @@ def process_existing_feed(feed_url, feed_name, items):
 
 def check_feeds():
     """Check all configured RSS feeds for new items and send emails."""
+    logger.info("Checking feeds...")
     for feed_url in CONFIG["feeds"]:
         feed_name, items = fetch_feed(feed_url)
 
@@ -105,7 +106,7 @@ def check_feeds():
             process_existing_feed(feed_url, feed_name, items)
         else:
             process_new_feed(feed_url, feed_name, items)
-
+    logger.info("Done checking feeds.")
 
 def main():
     load_configuration()

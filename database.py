@@ -65,6 +65,7 @@ def mark_item_sent(feed_url: str, item_guid: str):
         )
         conn.commit()
     except sqlite3.IntegrityError:
+        pass  # Item already exists, ignore duplicate
     finally:
         conn.close()
 
