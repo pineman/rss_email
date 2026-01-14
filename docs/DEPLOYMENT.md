@@ -8,29 +8,6 @@
 - **Volume**: vol_4o5wn97k0dwgyk2v (rss_email_data) mounted at `/app/data`
 - **Volume Count**: 1 (as intended)
 
-## What Happened (2026-01-14)
-
-### Problem
-**Duplicate machines** were running simultaneously:
-1. `1850355a204598` (solitary-star-2870) - newer, created at 20:08
-2. `7847069bd67d38` (muddy-butterfly-7413) - older, created at 19:59
-
-**Duplicate volumes** existed:
-1. `vol_4o5wn97k0dwgyk2v` - attached to newer machine
-2. `vol_re8odnk5mj0k803r` - orphaned from older machine
-
-### Root Cause
-The `fly.toml` configuration lacked explicit deployment strategy controls. This caused Fly.io to:
-- Create new machines during deployment without removing old ones
-- Create new volumes for each machine
-- Not enforce single-machine/single-volume constraint
-
-### Solution
-1. **Removed duplicate machine**: Stopped and destroyed the older machine (`7847069bd67d38`)
-2. **Removed duplicate volume**: Destroyed the orphaned volume (`vol_re8odnk5mj0k803r`)
-3. **Updated fly.toml**: Added `deploy.strategy = "immediate"` to ensure direct machine replacement
-4. **Validated configuration**: Confirmed the config is valid and only 1 machine + 1 volume exist
-
 ## Best Practices for Single-Machine Apps
 
 ### Deployment Strategy

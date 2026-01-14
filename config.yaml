@@ -118,5 +118,3 @@ feeds:
   - "https://unplannedobsolescence.com/atom.xml"
   - "https://www.zachdaniel.dev/feed"
   - "https://zackoverflow.dev/rss.xml"
-
-check_interval_minutes: 30

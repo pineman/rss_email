@@ -73,19 +73,6 @@ launchctl load ~/Library/LaunchAgents/com.user.rss-email.plist
 
 ## Maintenance
 
-### Database Cleanup
-
-The database grows over time but remains small. To clean up old entries:
-
-```python
-from database import cleanup_old_entries
-
-# Remove entries older than 90 days
-cleanup_old_entries(days=90)
-```
-
-You can add this to a scheduled task or run it manually when needed.
-
 ### Monitoring
 
 Check the application is running:
