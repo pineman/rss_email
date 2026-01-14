@@ -1,0 +1,5 @@
+feeds:
+  - "https://example.com/feed.xml"
+  - "https://another-example.com/rss"
+
+check_interval_minutes: 30

@@ -1,0 +1,4 @@
+feeds:
+  - "https://pineman.github.io/atom.xml"
+
+check_interval_minutes: 30
