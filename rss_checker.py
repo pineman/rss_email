@@ -55,8 +55,6 @@ def fetch_feed(url: str) -> Tuple[str, List[Dict]]:
             entry_link = entry.get("link", "No Link")
             logger.warning(f"Skipping item with no guid or link - Entry title: {entry_title}, Entry link: {entry_link}, Feed URL: {url}")
 
-    logger.info(f"Fetched {len(items)} items from {feed_title} ({url})")
-
     return feed_title, items
 
 
