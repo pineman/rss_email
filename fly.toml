@@ -1,0 +1,22 @@
+# fly.toml app configuration file generated for rss-email on 2026-01-14T19:55:34Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'rss-email'
+primary_region = 'cdg'
+
+[build]
+
+[[mounts]]
+  source = 'rss_email_data'
+  destination = '/app/data'
+
+# Background worker - keep always running
+[experimental]
+  auto_rollback = true
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
