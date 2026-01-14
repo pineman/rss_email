@@ -58,25 +58,34 @@ def fetch_feed(url: str) -> Tuple[str, List[Dict]]:
     return feed_title, items
 
 
+def extract_href(value) -> str:
+    """Extract href string from a value that may be a string, dict, or list."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return value.get("href", "")
+    if isinstance(value, list) and value:
+        return extract_href(value[0])
+    return ""
+
+
 def normalize_feed_item(entry) -> Optional[Dict]:
     title = entry.get("title", "No Title")
-    link = entry.get("link", "")
-    guid = entry.get("id", entry.get("guid", link))  # id -> guid -> link fallback
-
-    if not guid:
+    link = extract_href(entry.get("link", ""))
+    
+    # Atom uses 'id', RSS uses 'guid' - some malformed feeds put href in id element
+    guid = extract_href(entry.get("id")) or entry.get("guid") or link
+    
+    if not guid and not link:
         return None
-
-    published = get_published_date(entry)
-    published_dt = get_published_datetime(entry)
-    summary = get_summary(entry)
 
     return {
         "title": title,
         "link": link,
         "guid": guid,
-        "published": published,
-        "published_dt": published_dt,  # For sorting
-        "summary": summary,
+        "published": get_published_date(entry),
+        "published_dt": get_published_datetime(entry),
+        "summary": get_summary(entry),
     }
 
 
