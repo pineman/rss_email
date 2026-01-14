@@ -141,12 +141,13 @@ def check_feeds():
                     errors += 1
                 
                 # Mark all other items as sent without sending emails
-                for item in items[1:]:
-                    try:
-                        mark_item_sent(feed_url, item['guid'])
-                        logger.debug(f"Marked as sent (no email): {item['title']}")
-                    except Exception as e:
-                        logger.warning(f"Error marking item as sent: {e}")
+                for item in items:
+                    if item['guid'] != most_recent_item['guid']:
+                        try:
+                            mark_item_sent(feed_url, item['guid'])
+                            logger.debug(f"Marked as sent (no email): {item['title']}")
+                        except Exception as e:
+                            logger.warning(f"Error marking item as sent: {e}")
                 
                 logger.info(f"Marked {len(items) - 1} older posts as sent without sending emails")
             else:

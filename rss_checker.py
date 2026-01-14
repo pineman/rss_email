@@ -2,8 +2,14 @@
 
 import feedparser
 import logging
+import ssl
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+
+# Disable SSL certificate verification for feedparser
+# This is needed for feeds with SSL certificate issues
+if hasattr(ssl, '_create_unverified_context'):
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 logger = logging.getLogger(__name__)
 
