@@ -11,11 +11,18 @@ primary_region = 'cdg'
 [[mounts]]
   source = 'rss_email_data'
   destination = '/app/data'
+  # Note: This mount name must match the volume attached to your machine
 
 # Background worker - keep always running
 [experimental]
   auto_rollback = true
 
+# Deployment strategy - use "immediate" to replace machines directly
+# This prevents multiple machines from running during deployments
+[deploy]
+  strategy = "immediate"
+
+# Machine configuration - single machine specification
 [[vm]]
   memory = '256mb'
   cpu_kind = 'shared'
