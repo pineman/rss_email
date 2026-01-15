@@ -139,7 +139,7 @@ feeds:
   - "https://lobste.rs/rss?token=ylJDqHTJPcUahg22xWTk5apbluwTdE8YmO9fo5O9QhMoMeR9yg"
   - "https://qntm.org/rss.php"
   - "https://ryanbigg.com/feed.xml"
-  - "https://tigerbeetle.com/blog/index.xml"
+  - "https://tigerbeetle.com/blog/atom.xml"
   - "https://www.ethereal.io/feed.xml"
   - "https://www.evanjones.ca/index.rss"
   - "https://www.inkandswitch.com/index.xml"
