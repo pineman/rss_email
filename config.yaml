@@ -1,7 +1,7 @@
 feeds:
   - "https://pineman.github.io/atom.xml"
   - "https://lobste.rs/rss"
-  - "https://rachelbythebay.com/w/feed/"
+  - "https://rachelbythebay.com/w/atom.xml"
   - "https://boringsql.com/atom.xml"
   - "https://www.cybertec-postgresql.com/en/feed/"
   - "https://postgres.ai/blog/rss.xml"
