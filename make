@@ -7,7 +7,7 @@ run() {
 }
 
 deploy() {
-  fly deploy
+  fly deploy --local-only
 }
 
 eval "${@:-deploy}"

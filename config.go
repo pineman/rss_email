@@ -8,11 +8,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const EmailAddress = "joao.castropinheiro@gmail.com"
+
 type Config struct {
 	Feeds            []string `yaml:"feeds"`
-	GmailAddress     string
 	GmailAppPassword string
-	RecipientEmail   string
 }
 
 func Load(configPath string) (*Config, error) {
@@ -28,18 +28,10 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	cfg.GmailAddress = os.Getenv("GMAIL_ADDRESS")
 	cfg.GmailAppPassword = os.Getenv("GMAIL_APP_PASSWORD")
-	cfg.RecipientEmail = os.Getenv("RECIPIENT_EMAIL")
 
-	if cfg.GmailAddress == "" {
-		return nil, fmt.Errorf("GMAIL_ADDRESS environment variable is required")
-	}
 	if cfg.GmailAppPassword == "" {
 		return nil, fmt.Errorf("GMAIL_APP_PASSWORD environment variable is required")
-	}
-	if cfg.RecipientEmail == "" {
-		return nil, fmt.Errorf("RECIPIENT_EMAIL environment variable is required")
 	}
 
 	if len(cfg.Feeds) == 0 {

@@ -12,24 +12,20 @@ const (
 )
 
 type Sender struct {
-	gmailAddress     string
 	gmailAppPassword string
-	recipientEmail   string
 }
 
-func NewSender(gmailAddress, gmailAppPassword, recipientEmail string) *Sender {
+func NewSender(gmailAppPassword string) *Sender {
 	return &Sender{
-		gmailAddress:     gmailAddress,
 		gmailAppPassword: gmailAppPassword,
-		recipientEmail:   recipientEmail,
 	}
 }
 
 func (s *Sender) SendEmail(subject, textBody, htmlBody string) error {
-	auth := smtp.PlainAuth("", s.gmailAddress, s.gmailAppPassword, smtpServer)
+	auth := smtp.PlainAuth("", EmailAddress, s.gmailAppPassword, smtpServer)
 	msg := s.composeMIMEMessage(subject, textBody, htmlBody)
 	addr := smtpServer + ":" + smtpPort
-	err := smtp.SendMail(addr, auth, s.gmailAddress, []string{s.recipientEmail}, []byte(msg))
+	err := smtp.SendMail(addr, auth, EmailAddress, []string{EmailAddress}, []byte(msg))
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
@@ -40,8 +36,8 @@ func (s *Sender) composeMIMEMessage(subject, textBody, htmlBody string) string {
 	boundary := "----=_Part_0_1234567890.1234567890"
 
 	headers := []string{
-		fmt.Sprintf("From: %s", s.gmailAddress),
-		fmt.Sprintf("To: %s", s.recipientEmail),
+		fmt.Sprintf("From: %s", EmailAddress),
+		fmt.Sprintf("To: %s", EmailAddress),
 		fmt.Sprintf("Subject: %s", subject),
 		"MIME-Version: 1.0",
 		fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"", boundary),

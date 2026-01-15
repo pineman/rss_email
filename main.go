@@ -25,7 +25,7 @@ func main() {
 	}
 	defer Close()
 
-	emailSender = NewSender(cfg.GmailAddress, cfg.GmailAppPassword, cfg.RecipientEmail)
+	emailSender = NewSender(cfg.GmailAppPassword)
 
 	checkFeeds()
 

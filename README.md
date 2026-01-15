@@ -7,9 +7,7 @@ Monitors RSS/Atom feeds and sends new posts via email. Checks every 30 minutes.
 Create `.env`:
 
 ```
-GMAIL_ADDRESS=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
-RECIPIENT_EMAIL=recipient@gmail.com
 ```
 
 Create `config.yaml`:

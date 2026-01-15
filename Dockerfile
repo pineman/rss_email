@@ -10,6 +10,7 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates sqlite-libs tzdata
 WORKDIR /app
 COPY --from=builder /build/rss-email .
+COPY --from=builder /build/config.yaml .
 RUN mkdir -p /app/data
 RUN adduser -D -u 1000 appuser && \
     chown -R appuser:appuser /app
