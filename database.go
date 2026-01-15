@@ -44,13 +44,20 @@ func Initialize(dbPath string) error {
 		last_modified TEXT,
 		etag TEXT,
 		last_checked TIMESTAMP NOT NULL,
-		last_poll_status INTEGER
+		last_poll_status INTEGER,
+		next_check_after TIMESTAMP,
+		error_count INTEGER DEFAULT 0
 	);
 	`
 
 	if _, err := db.Exec(createFeedMetadataTableSQL); err != nil {
 		return fmt.Errorf("failed to create feed_metadata table: %w", err)
 	}
+
+	// Schema migration for existing tables
+	// We ignore errors here as columns might already exist
+	_, _ = db.Exec("ALTER TABLE feed_metadata ADD COLUMN next_check_after TIMESTAMP")
+	_, _ = db.Exec("ALTER TABLE feed_metadata ADD COLUMN error_count INTEGER DEFAULT 0")
 
 	createIndexSQL := `
 	CREATE INDEX IF NOT EXISTS idx_feed_guid 
@@ -112,12 +119,14 @@ type FeedMetadata struct {
 	ETag           string
 	LastChecked    time.Time
 	LastPollStatus int
+	NextCheckAfter *time.Time
+	ErrorCount     int
 }
 
 func GetFeedMetadata(feedURL string) (*FeedMetadata, error) {
 	var metadata FeedMetadata
 	query := `SELECT feed_url, COALESCE(last_modified, ''), COALESCE(etag, ''), 
-	          last_checked, COALESCE(last_poll_status, 0) 
+	          last_checked, COALESCE(last_poll_status, 0), next_check_after, COALESCE(error_count, 0)
 	          FROM feed_metadata WHERE feed_url = ?`
 
 	err := db.QueryRow(query, feedURL).Scan(
@@ -126,6 +135,8 @@ func GetFeedMetadata(feedURL string) (*FeedMetadata, error) {
 		&metadata.ETag,
 		&metadata.LastChecked,
 		&metadata.LastPollStatus,
+		&metadata.NextCheckAfter,
+		&metadata.ErrorCount,
 	)
 
 	if err == sql.ErrNoRows {
@@ -138,16 +149,46 @@ func GetFeedMetadata(feedURL string) (*FeedMetadata, error) {
 	return &metadata, nil
 }
 
-func UpdateFeedMetadata(feedURL, lastModified, etag string, pollStatus int) error {
-	query := `INSERT INTO feed_metadata (feed_url, last_modified, etag, last_checked, last_poll_status)
-	          VALUES (?, ?, ?, ?, ?)
+func UpdateFeedError(feedURL string, pollStatus int, errorCount int, nextCheckAfter time.Time) error {
+	query := `UPDATE feed_metadata 
+	          SET last_checked = ?, last_poll_status = ?, error_count = ?, next_check_after = ?
+	          WHERE feed_url = ?`
+
+	result, err := db.Exec(query, time.Now(), pollStatus, errorCount, nextCheckAfter, feedURL)
+	if err != nil {
+		return fmt.Errorf("failed to update feed status: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		// New feed failed on first try
+		insertQuery := `INSERT INTO feed_metadata (feed_url, last_modified, etag, last_checked, last_poll_status, error_count, next_check_after)
+		                VALUES (?, '', '', ?, ?, ?, ?)`
+		_, err := db.Exec(insertQuery, feedURL, time.Now(), pollStatus, errorCount, nextCheckAfter)
+		if err != nil {
+			return fmt.Errorf("failed to insert new feed status: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func UpdateFeedSuccess(feedURL, lastModified, etag string, pollStatus int, nextCheckAfter time.Time) error {
+	query := `INSERT INTO feed_metadata (feed_url, last_modified, etag, last_checked, last_poll_status, error_count, next_check_after)
+	          VALUES (?, ?, ?, ?, ?, 0, ?)
 	          ON CONFLICT(feed_url) DO UPDATE SET
 	            last_modified = excluded.last_modified,
 	            etag = excluded.etag,
 	            last_checked = excluded.last_checked,
-	            last_poll_status = excluded.last_poll_status`
+	            last_poll_status = excluded.last_poll_status,
+				error_count = 0,
+				next_check_after = excluded.next_check_after`
 
-	_, err := db.Exec(query, feedURL, lastModified, etag, time.Now(), pollStatus)
+	_, err := db.Exec(query, feedURL, lastModified, etag, time.Now(), pollStatus, nextCheckAfter)
 	if err != nil {
 		return fmt.Errorf("failed to update feed metadata: %w", err)
 	}

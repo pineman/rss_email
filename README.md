@@ -2,6 +2,10 @@
 
 Monitors RSS/Atom feeds and sends new posts via email. Checks every 30 minutes.
 
+This program is designed to be a "good netizen" and follows the [Feed Reader Behavior (FRB)](https://rachelbythebay.com/frb/) rules. It implements proper conditional requests (ETag/Last-Modified preservation), respects rate limiting (`Retry-After`), and uses exponential backoff for failing feeds to minimize server load.
+
+## Installation
+
 ## Setup
 
 Create `.env`:

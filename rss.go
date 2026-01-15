@@ -24,6 +24,7 @@ type FeedResult struct {
 	Items        []FeedItem
 	LastModified string
 	ETag         string
+	RetryAfter   string
 	StatusCode   int
 	NotModified  bool
 	RateLimited  bool
@@ -43,7 +44,7 @@ func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
 		req.Header.Set("If-None-Match", etag)
 	}
 
-	req.Header.Set("User-Agent", "rss_email/1.0 (Feed Reader)")
+	req.Header.Set("User-Agent", "rss_email/1.0 (+https://github.com/pineman/rss_email)")
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -62,6 +63,7 @@ func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
 		StatusCode:   resp.StatusCode,
 		LastModified: resp.Header.Get("Last-Modified"),
 		ETag:         resp.Header.Get("ETag"),
+		RetryAfter:   resp.Header.Get("Retry-After"),
 	}
 
 	if resp.StatusCode == http.StatusNotModified {

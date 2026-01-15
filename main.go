@@ -2,8 +2,11 @@ package main
 
 import (
 	"log"
+	"math"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -12,6 +15,8 @@ var (
 	cfg         *Config
 	emailSender *Sender
 )
+
+const StandardInterval = 60 * time.Minute
 
 func main() {
 	var err error
@@ -31,7 +36,7 @@ func main() {
 
 	stopChan := make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(60 * time.Minute)
+		ticker := time.NewTicker(StandardInterval)
 		defer ticker.Stop()
 
 		for {
@@ -44,7 +49,7 @@ func main() {
 		}
 	}()
 
-	log.Println("Scheduler started - checking feeds every 60 minutes")
+	log.Printf("Scheduler started - checking feeds every %v", StandardInterval)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -65,6 +70,17 @@ func checkFeeds() {
 			continue
 		}
 
+		// FRB037 & Backoff: Check if it's time to poll
+		if metadata != nil && metadata.NextCheckAfter != nil && time.Now().Before(*metadata.NextCheckAfter) {
+			// Optional: log.Printf("Skipping %s, next check after %v", feedURL, metadata.NextCheckAfter)
+			continue
+		}
+
+		// Also check strict interval if NextCheckAfter wasn't set or is in the past but very recent (redundant with NextCheckAfter usually, but good for safety)
+		if metadata != nil && time.Since(metadata.LastChecked) < StandardInterval {
+			continue
+		}
+
 		lastModified := ""
 		etag := ""
 		if metadata != nil {
@@ -76,26 +92,37 @@ func checkFeeds() {
 		if err != nil {
 			log.Printf("Error fetching feed %s: %v", feedURL, err)
 
-			// Still update metadata even on error to track status
+			status := 0
+			retryAfter := ""
 			if result != nil {
-				if err := UpdateFeedMetadata(feedURL, result.LastModified, result.ETag, result.StatusCode); err != nil {
-					log.Printf("Error updating metadata for %s: %v", feedURL, err)
-				}
+				status = result.StatusCode
+				retryAfter = result.RetryAfter
+			}
+
+			currentErrorCount := 0
+			if metadata != nil {
+				currentErrorCount = metadata.ErrorCount
+			}
+			newErrorCount := currentErrorCount + 1
+
+			nextCheck := calculateBackoff(status, retryAfter, newErrorCount)
+
+			// FRB016: Only update status/error/schedule, keep old cache headers
+			if err := UpdateFeedError(feedURL, status, newErrorCount, nextCheck); err != nil {
+				log.Printf("Error updating status for %s: %v", feedURL, err)
 			}
 			continue
 		}
 
-		if err := UpdateFeedMetadata(feedURL, result.LastModified, result.ETag, result.StatusCode); err != nil {
+		// Success or 304
+		// Standard interval
+		nextCheck := time.Now().Add(StandardInterval)
+		if err := UpdateFeedSuccess(feedURL, result.LastModified, result.ETag, result.StatusCode, nextCheck); err != nil {
 			log.Printf("Error updating metadata for %s: %v", feedURL, err)
 		}
 
 		if result.NotModified {
 			log.Printf("Feed not modified: %s", feedURL)
-			continue
-		}
-
-		if result.RateLimited {
-			log.Printf("Rate limited for feed: %s - will retry later", feedURL)
 			continue
 		}
 
@@ -117,6 +144,54 @@ func checkFeeds() {
 	}
 
 	log.Println("Done checking feeds.")
+}
+
+func calculateBackoff(status int, retryAfter string, errorCount int) time.Time {
+	// FRB114: Stop on 410 Gone
+	if status == http.StatusGone {
+		log.Printf("Feed returned 410 Gone - disabling feed (FRB114)")
+		// Disable for a year (essentially forever)
+		return time.Now().Add(365 * 24 * time.Hour)
+	}
+
+	// FRB020: Check Retry-After
+	if retryDuration := parseRetryAfter(retryAfter); retryDuration > 0 {
+		return time.Now().Add(retryDuration)
+	}
+
+	// FRB110-119: Exponential backoff for errors
+	// Base interval StandardInterval.
+	// 1 error: 60m
+	// 2 errors: 120m
+	// 3 errors: 240m
+	// ...
+	// Cap at 24 hours
+	backoff := StandardInterval * time.Duration(math.Pow(2, float64(errorCount-1)))
+	if backoff > 24*time.Hour {
+		backoff = 24 * time.Hour
+	}
+
+	// Ensure at least base interval
+	if backoff < StandardInterval {
+		backoff = StandardInterval
+	}
+
+	return time.Now().Add(backoff)
+}
+
+func parseRetryAfter(header string) time.Duration {
+	if header == "" {
+		return 0
+	}
+	// Try parsing as seconds
+	if seconds, err := strconv.Atoi(header); err == nil {
+		return time.Duration(seconds) * time.Second
+	}
+	// Try parsing as HTTP date
+	if t, err := http.ParseTime(header); err == nil {
+		return time.Until(t)
+	}
+	return 0
 }
 
 func processNewFeed(feedURL, feedName string, items []FeedItem) {
