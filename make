@@ -2,6 +2,10 @@
 
 set -e
 
+run() {
+  go run .
+}
+
 deploy() {
   fly deploy
 }

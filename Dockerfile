@@ -1,23 +1,17 @@
-FROM python:3.11-slim
+FROM golang:1.25.5-alpine AS builder
+RUN apk add --no-cache gcc musl-dev sqlite-dev
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o rss-email .
 
-# Set working directory
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates sqlite-libs tzdata
 WORKDIR /app
-
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application files
-COPY *.py ./
-COPY config.yaml ./
-
-# Create data directory
+COPY --from=builder /build/rss-email .
 RUN mkdir -p /app/data
-
-# Volume for persistent data
-VOLUME /app/data
-
-# Run the application
-CMD ["python", "app.py"]
+RUN adduser -D -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+CMD ["./rss-email"]
