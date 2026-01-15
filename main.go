@@ -71,14 +71,12 @@ func checkFeeds() {
 		}
 
 		// FRB037 & Backoff: Check if it's time to poll
-		if metadata != nil && metadata.NextCheckAfter != nil && time.Now().Before(*metadata.NextCheckAfter) {
-			// Optional: log.Printf("Skipping %s, next check after %v", feedURL, metadata.NextCheckAfter)
-			continue
-		}
-
-		// Also check strict interval if NextCheckAfter wasn't set or is in the past but very recent (redundant with NextCheckAfter usually, but good for safety)
-		if metadata != nil && time.Since(metadata.LastChecked) < StandardInterval {
-			continue
+		if metadata != nil {
+			if metadata.NextCheckAfter != nil && time.Now().Before(*metadata.NextCheckAfter) ||
+				time.Since(metadata.LastChecked) < StandardInterval {
+				log.Printf("Skipping %s, next check after %v", feedURL, metadata.NextCheckAfter)
+				continue
+			}
 		}
 
 		lastModified := ""
@@ -121,12 +119,7 @@ func checkFeeds() {
 			log.Printf("Error updating metadata for %s: %v", feedURL, err)
 		}
 
-		if result.NotModified {
-			log.Printf("Feed not modified: %s", feedURL)
-			continue
-		}
-
-		if len(result.Items) == 0 {
+		if result.NotModified || len(result.Items) == 0 {
 			continue
 		}
 
