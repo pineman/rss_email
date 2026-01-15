@@ -1,5 +1,7 @@
 feeds:
   - "https://pineman.github.io/atom.xml"
+  - "https://lobste.rs/rss"
+  - "https://rachelbythebay.com/w/feed/"
   - "https://boringsql.com/atom.xml"
   - "https://www.cybertec-postgresql.com/en/feed/"
   - "https://postgres.ai/blog/rss.xml"
@@ -55,7 +57,6 @@ feeds:
   - "https://jvns.ca/til/atom.xml"
   - "https://karpathy.bearblog.dev/feed/"
   - "https://lewiscampbell.tech/blog/feed.xml"
-  - "https://feeds.macrumors.com/MacRumors-All"
   - "https://macwright.com/rss.xml"
   - "https://marcoroth.dev/feed.xml"
   - "https://matklad.github.io/feed.xml"
@@ -136,7 +137,6 @@ feeds:
   - "https://hanamirb.org/atom.xml"
   - "https://janko.io/feed.xml"
   - "https://lethain.com/feeds.xml"
-  - "https://lobste.rs/rss?token=ylJDqHTJPcUahg22xWTk5apbluwTdE8YmO9fo5O9QhMoMeR9yg"
   - "https://qntm.org/rss.php"
   - "https://ryanbigg.com/feed.xml"
   - "https://tigerbeetle.com/blog/atom.xml"

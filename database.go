@@ -38,6 +38,20 @@ func Initialize(dbPath string) error {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
+	createFeedMetadataTableSQL := `
+	CREATE TABLE IF NOT EXISTS feed_metadata (
+		feed_url TEXT PRIMARY KEY,
+		last_modified TEXT,
+		etag TEXT,
+		last_checked TIMESTAMP NOT NULL,
+		last_poll_status INTEGER
+	);
+	`
+
+	if _, err := db.Exec(createFeedMetadataTableSQL); err != nil {
+		return fmt.Errorf("failed to create feed_metadata table: %w", err)
+	}
+
 	createIndexSQL := `
 	CREATE INDEX IF NOT EXISTS idx_feed_guid 
 	ON sent_items(feed_url, item_guid);
@@ -90,6 +104,55 @@ func GetSentCount() (int, error) {
 		return 0, fmt.Errorf("failed to get sent count: %w", err)
 	}
 	return count, nil
+}
+
+type FeedMetadata struct {
+	FeedURL        string
+	LastModified   string
+	ETag           string
+	LastChecked    time.Time
+	LastPollStatus int
+}
+
+func GetFeedMetadata(feedURL string) (*FeedMetadata, error) {
+	var metadata FeedMetadata
+	query := `SELECT feed_url, COALESCE(last_modified, ''), COALESCE(etag, ''), 
+	          last_checked, COALESCE(last_poll_status, 0) 
+	          FROM feed_metadata WHERE feed_url = ?`
+
+	err := db.QueryRow(query, feedURL).Scan(
+		&metadata.FeedURL,
+		&metadata.LastModified,
+		&metadata.ETag,
+		&metadata.LastChecked,
+		&metadata.LastPollStatus,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get feed metadata: %w", err)
+	}
+
+	return &metadata, nil
+}
+
+func UpdateFeedMetadata(feedURL, lastModified, etag string, pollStatus int) error {
+	query := `INSERT INTO feed_metadata (feed_url, last_modified, etag, last_checked, last_poll_status)
+	          VALUES (?, ?, ?, ?, ?)
+	          ON CONFLICT(feed_url) DO UPDATE SET
+	            last_modified = excluded.last_modified,
+	            etag = excluded.etag,
+	            last_checked = excluded.last_checked,
+	            last_poll_status = excluded.last_poll_status`
+
+	_, err := db.Exec(query, feedURL, lastModified, etag, time.Now(), pollStatus)
+	if err != nil {
+		return fmt.Errorf("failed to update feed metadata: %w", err)
+	}
+
+	return nil
 }
 
 func Close() error {

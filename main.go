@@ -31,9 +31,9 @@ func main() {
 
 	stopChan := make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(30 * time.Minute)
+		ticker := time.NewTicker(60 * time.Minute)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -44,7 +44,7 @@ func main() {
 		}
 	}()
 
-	log.Println("Scheduler started - checking feeds every 30 minutes")
+	log.Println("Scheduler started - checking feeds every 60 minutes")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -59,13 +59,47 @@ func checkFeeds() {
 	log.Println("Checking feeds...")
 
 	for _, feedURL := range cfg.Feeds {
-		feedName, items, err := FetchFeed(feedURL)
+		metadata, err := GetFeedMetadata(feedURL)
 		if err != nil {
-			log.Printf("Error fetching feed %s: %v", feedURL, err)
+			log.Printf("Error getting metadata for %s: %v", feedURL, err)
 			continue
 		}
 
-		if len(items) == 0 {
+		lastModified := ""
+		etag := ""
+		if metadata != nil {
+			lastModified = metadata.LastModified
+			etag = metadata.ETag
+		}
+
+		result, err := FetchFeed(feedURL, lastModified, etag)
+		if err != nil {
+			log.Printf("Error fetching feed %s: %v", feedURL, err)
+
+			// Still update metadata even on error to track status
+			if result != nil {
+				if err := UpdateFeedMetadata(feedURL, result.LastModified, result.ETag, result.StatusCode); err != nil {
+					log.Printf("Error updating metadata for %s: %v", feedURL, err)
+				}
+			}
+			continue
+		}
+
+		if err := UpdateFeedMetadata(feedURL, result.LastModified, result.ETag, result.StatusCode); err != nil {
+			log.Printf("Error updating metadata for %s: %v", feedURL, err)
+		}
+
+		if result.NotModified {
+			log.Printf("Feed not modified: %s", feedURL)
+			continue
+		}
+
+		if result.RateLimited {
+			log.Printf("Rate limited for feed: %s - will retry later", feedURL)
+			continue
+		}
+
+		if len(result.Items) == 0 {
 			continue
 		}
 
@@ -76,9 +110,9 @@ func checkFeeds() {
 		}
 
 		if hasFeedItems {
-			processExistingFeed(feedURL, feedName, items)
+			processExistingFeed(feedURL, result.FeedTitle, result.Items)
 		} else {
-			processNewFeed(feedURL, feedName, items)
+			processNewFeed(feedURL, result.FeedTitle, result.Items)
 		}
 	}
 
