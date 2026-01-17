@@ -19,4 +19,9 @@ logs() {
   fly ssh console -C "sh -c 'tail -n +1 -f /app/data/logs/rss_email_*.log'"
 }
 
-eval "${@:-deploy}"
+query() {
+  local q="${*//\"/\\\"}"
+  fly ssh console -C "sqlite3 /app/data/rss_email.db \"$q\""
+}
+
+"${@:-deploy}"
