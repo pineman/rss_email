@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"math"
 	"net/http"
@@ -16,7 +17,13 @@ var cfg *Config
 const StandardInterval = 60 * time.Minute
 
 func main() {
-	var err error
+	logger, err := NewMonthlyLogger("data/logs")
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
+	defer logger.Close()
+	log.SetOutput(io.MultiWriter(os.Stdout, logger))
+
 	cfg, err = Load("config.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)

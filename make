@@ -15,4 +15,8 @@ deploy() {
   fly deploy --local-only
 }
 
+logs() {
+  fly ssh console -C "sh -c 'tail -n +1 -f /app/data/logs/rss_email_*.log'"
+}
+
 eval "${@:-deploy}"

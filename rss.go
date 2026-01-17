@@ -71,7 +71,7 @@ func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
 	}
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return result, fmt.Errorf("rate limited (429): server asks to slow down")
+		return result, fmt.Errorf("rate limited (429), Retry-After: %s", result.RetryAfter)
 	}
 
 	if resp.StatusCode != http.StatusOK {
