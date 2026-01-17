@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mmcdole/gofeed"
@@ -78,8 +80,16 @@ func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
 		return result, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return result, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Fix common malformed HTML in feeds (e.g., </br> instead of <br/>)
+	content := strings.ReplaceAll(string(body), "</br>", "<br/>")
+
 	fp := gofeed.NewParser()
-	feed, err := fp.Parse(resp.Body)
+	feed, err := fp.ParseString(content)
 	if err != nil {
 		return result, fmt.Errorf("failed to parse feed: %w", err)
 	}
