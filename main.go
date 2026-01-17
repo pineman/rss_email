@@ -11,10 +11,7 @@ import (
 	"time"
 )
 
-var (
-	cfg         *Config
-	emailSender *Sender
-)
+var cfg *Config
 
 const StandardInterval = 60 * time.Minute
 
@@ -30,22 +27,14 @@ func main() {
 	}
 	defer Close()
 
-	emailSender = NewSender(cfg.GmailAppPassword)
-
 	checkFeeds()
 
-	stopChan := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(StandardInterval)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				checkFeeds()
-			case <-stopChan:
-				return
-			}
+		for range ticker.C {
+			checkFeeds()
 		}
 	}()
 
@@ -56,8 +45,6 @@ func main() {
 	<-sigChan
 
 	log.Println("Shutting down...")
-	close(stopChan)
-	time.Sleep(100 * time.Millisecond)
 }
 
 func checkFeeds() {
@@ -177,7 +164,7 @@ func processExistingFeed(feedURL, feedName string, items []FeedItem) {
 func sendItem(feedURL, feedName string, item FeedItem) {
 	subject, textBody, htmlBody := FormatRSSEmail(feedName, item)
 
-	if err := emailSender.SendEmail(subject, textBody, htmlBody); err != nil {
+	if err := SendEmail(cfg.GmailAppPassword, subject, textBody, htmlBody); err != nil {
 		log.Printf("Error sending email for %s: %v", item.Title, err)
 		return
 	}

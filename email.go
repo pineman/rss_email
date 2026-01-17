@@ -12,17 +12,7 @@ const (
 	smtpPort   = "587"
 )
 
-type Sender struct {
-	gmailAppPassword string
-}
-
-func NewSender(gmailAppPassword string) *Sender {
-	return &Sender{
-		gmailAppPassword: gmailAppPassword,
-	}
-}
-
-func (s *Sender) SendEmail(subject, textBody, htmlBody string) error {
+func SendEmail(gmailAppPassword, subject, textBody, htmlBody string) error {
 	e := email.NewEmail()
 	e.From = EmailAddress
 	e.To = []string{EmailAddress}
@@ -30,7 +20,7 @@ func (s *Sender) SendEmail(subject, textBody, htmlBody string) error {
 	e.Text = []byte(textBody)
 	e.HTML = []byte(htmlBody)
 
-	auth := smtp.PlainAuth("", EmailAddress, s.gmailAppPassword, smtpServer)
+	auth := smtp.PlainAuth("", EmailAddress, gmailAppPassword, smtpServer)
 	addr := smtpServer + ":" + smtpPort
 
 	if err := e.Send(addr, auth); err != nil {
@@ -43,6 +33,11 @@ func (s *Sender) SendEmail(subject, textBody, htmlBody string) error {
 func FormatRSSEmail(feedName string, item FeedItem) (subject, textBody, htmlBody string) {
 	subject = fmt.Sprintf("[RSS] %s: %s", feedName, item.Title)
 
+	published := "Unknown"
+	if item.Published != nil {
+		published = item.Published.Format("2006-01-02 15:04:05")
+	}
+
 	textBody = fmt.Sprintf(`
 New post from %s
 
@@ -54,7 +49,7 @@ Published: %s
 
 ---
 This email was sent by RSS to Email service.
-`, feedName, item.Title, item.Link, item.Published, item.Summary)
+`, feedName, item.Title, item.Link, published, item.Summary)
 
 	htmlBody = fmt.Sprintf(`
 <html>
@@ -83,7 +78,7 @@ This email was sent by RSS to Email service.
     </div>
 </body>
 </html>
-`, feedName, item.Link, item.Title, item.Published, item.Summary)
+`, feedName, item.Link, item.Title, published, item.Summary)
 
 	return subject, textBody, htmlBody
 }

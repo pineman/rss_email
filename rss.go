@@ -11,12 +11,11 @@ import (
 )
 
 type FeedItem struct {
-	Title       string
-	Link        string
-	GUID        string
-	Published   string
-	PublishedDT *time.Time
-	Summary     string
+	Title     string
+	Link      string
+	GUID      string
+	Published *time.Time
+	Summary   string
 }
 
 type FeedResult struct {
@@ -27,7 +26,6 @@ type FeedResult struct {
 	RetryAfter   string
 	StatusCode   int
 	NotModified  bool
-	RateLimited  bool
 }
 
 func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
@@ -73,7 +71,6 @@ func FetchFeed(url string, lastModified, etag string) (*FeedResult, error) {
 	}
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		result.RateLimited = true
 		return result, fmt.Errorf("rate limited (429): server asks to slow down")
 	}
 
@@ -124,30 +121,19 @@ func normalizeFeedItem(entry *gofeed.Item) *FeedItem {
 		return nil
 	}
 
-	published := "Unknown"
-	var publishedDT *time.Time
-
+	var published *time.Time
 	if entry.PublishedParsed != nil {
-		publishedDT = entry.PublishedParsed
-		published = entry.PublishedParsed.Format("2006-01-02 15:04:05")
+		published = entry.PublishedParsed
 	} else if entry.UpdatedParsed != nil {
-		publishedDT = entry.UpdatedParsed
-		published = entry.UpdatedParsed.Format("2006-01-02 15:04:05")
-	} else if entry.Published != "" {
-		published = entry.Published
-	} else if entry.Updated != "" {
-		published = entry.Updated
+		published = entry.UpdatedParsed
 	}
 
-	summary := getSummary(entry)
-
 	return &FeedItem{
-		Title:       title,
-		Link:        link,
-		GUID:        guid,
-		Published:   published,
-		PublishedDT: publishedDT,
-		Summary:     summary,
+		Title:     title,
+		Link:      link,
+		GUID:      guid,
+		Published: published,
+		Summary:   getSummary(entry),
 	}
 }
 
@@ -170,8 +156,8 @@ func GetMostRecentItem(items []FeedItem) *FeedItem {
 
 	var mostRecent *FeedItem
 	for i := range items {
-		if items[i].PublishedDT != nil {
-			if mostRecent == nil || items[i].PublishedDT.After(*mostRecent.PublishedDT) {
+		if items[i].Published != nil {
+			if mostRecent == nil || items[i].Published.After(*mostRecent.Published) {
 				mostRecent = &items[i]
 			}
 		}

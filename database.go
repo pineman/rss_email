@@ -54,11 +54,6 @@ func Initialize(dbPath string) error {
 		return fmt.Errorf("failed to create feed_metadata table: %w", err)
 	}
 
-	// Schema migration for existing tables
-	// We ignore errors here as columns might already exist
-	_, _ = db.Exec("ALTER TABLE feed_metadata ADD COLUMN next_check_after TIMESTAMP")
-	_, _ = db.Exec("ALTER TABLE feed_metadata ADD COLUMN error_count INTEGER DEFAULT 0")
-
 	createIndexSQL := `
 	CREATE INDEX IF NOT EXISTS idx_feed_guid 
 	ON sent_items(feed_url, item_guid);
@@ -100,10 +95,7 @@ func HasFeedItems(feedURL string) (bool, error) {
 	return count > 0, nil
 }
 
-
-
 type FeedMetadata struct {
-	FeedURL        string
 	LastModified   string
 	ETag           string
 	LastChecked    time.Time
@@ -114,12 +106,11 @@ type FeedMetadata struct {
 
 func GetFeedMetadata(feedURL string) (*FeedMetadata, error) {
 	var metadata FeedMetadata
-	query := `SELECT feed_url, COALESCE(last_modified, ''), COALESCE(etag, ''), 
+	query := `SELECT COALESCE(last_modified, ''), COALESCE(etag, ''), 
 	          last_checked, COALESCE(last_poll_status, 0), next_check_after, COALESCE(error_count, 0)
 	          FROM feed_metadata WHERE feed_url = ?`
 
 	err := db.QueryRow(query, feedURL).Scan(
-		&metadata.FeedURL,
 		&metadata.LastModified,
 		&metadata.ETag,
 		&metadata.LastChecked,
