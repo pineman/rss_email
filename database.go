@@ -24,7 +24,7 @@ func Initialize(dbPath string) error {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	createTableSQL := `
+	schema := `
 	CREATE TABLE IF NOT EXISTS sent_items (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		feed_url TEXT NOT NULL,
@@ -32,13 +32,6 @@ func Initialize(dbPath string) error {
 		sent_at TIMESTAMP NOT NULL,
 		UNIQUE(feed_url, item_guid)
 	);
-	`
-
-	if _, err := db.Exec(createTableSQL); err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
-	}
-
-	createFeedMetadataTableSQL := `
 	CREATE TABLE IF NOT EXISTS feed_metadata (
 		feed_url TEXT PRIMARY KEY,
 		last_modified TEXT,
@@ -48,19 +41,11 @@ func Initialize(dbPath string) error {
 		next_check_after TIMESTAMP,
 		error_count INTEGER DEFAULT 0
 	);
+	CREATE INDEX IF NOT EXISTS idx_feed_guid ON sent_items(feed_url, item_guid);
 	`
 
-	if _, err := db.Exec(createFeedMetadataTableSQL); err != nil {
-		return fmt.Errorf("failed to create feed_metadata table: %w", err)
-	}
-
-	createIndexSQL := `
-	CREATE INDEX IF NOT EXISTS idx_feed_guid 
-	ON sent_items(feed_url, item_guid);
-	`
-
-	if _, err := db.Exec(createIndexSQL); err != nil {
-		return fmt.Errorf("failed to create index: %w", err)
+	if _, err := db.Exec(schema); err != nil {
+		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
 	return nil

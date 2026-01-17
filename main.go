@@ -64,20 +64,20 @@ func processFeed(feedURL string) {
 		return
 	}
 
-	// FRB037 & Backoff: Check if it's time to poll
+	lastModified := ""
+	etag := ""
+	currentErrorCount := 0
 	if metadata != nil {
+		lastModified = metadata.LastModified
+		etag = metadata.ETag
+		currentErrorCount = metadata.ErrorCount
+
+		// FRB037 & Backoff: Check if it's time to poll
 		if metadata.NextCheckAfter != nil && time.Now().Before(*metadata.NextCheckAfter) ||
 			time.Since(metadata.LastChecked) < StandardInterval {
 			log.Printf("Skipping %s, next check after %v", feedURL, metadata.NextCheckAfter)
 			return
 		}
-	}
-
-	lastModified := ""
-	etag := ""
-	if metadata != nil {
-		lastModified = metadata.LastModified
-		etag = metadata.ETag
 	}
 
 	result, err := FetchFeed(feedURL, lastModified, etag)
@@ -91,10 +91,6 @@ func processFeed(feedURL string) {
 			retryAfter = result.RetryAfter
 		}
 
-		currentErrorCount := 0
-		if metadata != nil {
-			currentErrorCount = metadata.ErrorCount
-		}
 		newErrorCount := currentErrorCount + 1
 
 		nextCheck := calculateBackoff(status, retryAfter, newErrorCount)
